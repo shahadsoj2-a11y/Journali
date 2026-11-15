@@ -67,8 +67,10 @@ struct ContentView: View {
             }
             .navigationTitle("Journal")
             .toolbarTitleDisplayMode(.inlineLarge)
-            // [5] شريط البحث
-            .searchable(text: $viewModel.searchText, prompt: "Search")
+            // [5] شريط البحث تحت الشاشة
+            .safeAreaInset(edge: .bottom) {
+                SearchBar(text: $viewModel.searchText)
+            }
             // [2] Toolbar: الأزرار اللي فوق
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -84,8 +86,12 @@ struct ContentView: View {
                         Image(systemName: "line.3.horizontal.decrease")
                     }
  
-                    // [3] نعطي الزر رابط (Binding) لمتغير showNewJournal
-                    AddButton(isPresented: $showNewJournal)
+                    // زر الإضافة ➕
+                    Button {
+                        showNewJournal = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
             // [2] sheet: صفحة كتابة يومية جديدة
@@ -112,19 +118,24 @@ struct ContentView: View {
 }
  
 // ==============================
-// زر الإضافة ➕
+// [5] شريط البحث
 // ==============================
-struct AddButton: View {
-    // [3] @Binding: رابط لمتغير موجود في ContentView
-    // لما نغيّره هنا، يتغير هناك
-    @Binding var isPresented: Bool
+struct SearchBar: View {
+    // [3] @Binding: رابط لمتغير searchText اللي في الـ ViewModel
+    // لما المستخدم يكتب هنا، يتغير هناك
+    @Binding var text: String
  
     var body: some View {
-        Button {
-            isPresented = true      // يفتح صفحة الكتابة
-        } label: {
-            Image(systemName: "plus")
+        // [1] HStack: العدسة والكتابة جنب بعض
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+ 
+            TextField("Search", text: $text)
         }
+        .padding()
+        .glassEffect()          // خلفية زجاجية شفافة مثل التصميم
+        .padding(.horizontal)
     }
 }
  
@@ -241,8 +252,9 @@ struct EditorView: View {
     @State private var content = ""
     @State private var showDiscardAlert = false
  
-    // [8] نتحكم في الكيبورد
-    @FocusState private var isFocused: Bool
+    // [8] نتحكم وين يطلع الكيبورد
+    @FocusState private var titleFocused: Bool
+    @FocusState private var contentFocused: Bool
  
     // التاريخ: إذا تعديل نعرض تاريخ اليومية، وإذا جديدة تاريخ اليوم
     var shownDate: Date {
@@ -259,6 +271,7 @@ struct EditorView: View {
                 // [7] TextField: خانة سطر واحد للعنوان
                 TextField("Title", text: $title)
                     .font(.largeTitle.bold())
+                    .focused($titleFocused)
  
                 Text(shownDate.formatted(date: .numeric, time: .omitted))
                     .font(.subheadline)
@@ -267,7 +280,18 @@ struct EditorView: View {
                 // [7] TextEditor: خانة كبيرة للمحتوى
                 TextEditor(text: $content)
                     .scrollContentBackground(.hidden)
-                    .focused($isFocused)
+                    .scrollDismissesKeyboard(.interactively)   // [8] تسحب لتحت يختفي الكيبورد
+                    .focused($contentFocused)
+                    // النص الرمادي يطلع إذا الخانة فاضية
+                    .overlay(alignment: .topLeading) {
+                        if content.isEmpty {
+                            Text("Type here...")
+                                .foregroundStyle(.secondary)
+                                .padding(.top, 8)
+                                .padding(.leading, 5)
+                                .allowsHitTesting(false)
+                        }
+                    }
                     .font(.title3)
                     .padding(.top, 16)
             }
@@ -289,21 +313,15 @@ struct EditorView: View {
                 // [7] زر الحفظ ✓
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        viewModel.saveJournal(journal, title: title, content: content)   // [4] الحفظ في الـ ViewModel
-                        dismiss()
+                        if title.isEmpty == false {     // ما نحفظ بدون عنوان
+                            viewModel.saveJournal(journal, title: title, content: content)   // [4] الحفظ في الـ ViewModel
+                            dismiss()
+                        }
                     } label: {
                         Image(systemName: "checkmark")
                     }
                     .buttonStyle(.glassProminent)
-                    .disabled(title.isEmpty)    // الزر ما يشتغل إذا ما فيه عنوان
-                }
- 
-                // [8] زر Done فوق الكيبورد يخفيه
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        isFocused = false
-                    }
+                    .tint(Color.lightPurple)    // لون الزر موف
                 }
             }
             // [6] [8] تنبيه قبل تجاهل التعديلات
@@ -315,10 +333,14 @@ struct EditorView: View {
             }
         }
         .onAppear {
-            // إذا تعديل، نعبّي الخانات ببيانات اليومية
             if let journal = journal {
+                // تعديل: نعبّي الخانات، والكيبورد يطلع على المحتوى
                 title = journal.title
                 content = journal.content
+                contentFocused = true
+            } else {
+                // جديدة: الكيبورد يطلع على العنوان
+                titleFocused = true
             }
         }
     }
