@@ -21,7 +21,16 @@ It lets you write down your daily thoughts, then easily find, edit, and bookmark
 
 ## Screenshots
 
-<!-- Drag and drop your screenshots here -->
+<p>
+  <img src="splash.png" width="200">
+  <img src="empty.png" width="200">
+  <img src="home.png" width="200">
+</p>
+<p>
+  <img src="editor.png" width="200">
+  <img src="swipe.png" width="200">
+  <img src="delete.png" width="200">
+</p>
 
 ---
 
