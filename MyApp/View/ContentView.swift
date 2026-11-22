@@ -303,8 +303,7 @@ struct EditorView: View {
                         if title.isEmpty && content.isEmpty {
                             dismiss()                   // ما فيه شي مكتوب: نسكّر على طول
                         } else {
-                            showDiscardAlert = true     // فيه كلام: نسأل أول
-                        }
+                            showDiscardAlert = true                           }
                     } label: {
                         Image(systemName: "xmark")
                     }
